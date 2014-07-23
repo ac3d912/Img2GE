@@ -5,6 +5,10 @@ Img2GE -- Plot local images w/ GPS data onto Google Earth VIA crafted .kml
 
 Img2GE is a small script that plots local images w/ GPS data onto Google Earth VIA crafted .kml
 
+Dependencies:
+    exifread - https://pypi.python.org/pypi/ExifRead
+    simplekml - https://pypi.python.org/pypi/simplekml
+
 @author:     Daniel Gordon
 
 @copyright:  2014 Daniel Gordon. All rights reserved.
@@ -15,16 +19,15 @@ Img2GE is a small script that plots local images w/ GPS data onto Google Earth V
 @deffield    updated: Updated
 '''
 
-import sys
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from itertools import groupby
+from logging import getLogger, basicConfig, INFO
 import os
+import sys
 
 import exifread
 import simplekml
 
-from argparse import ArgumentParser
-from argparse import RawDescriptionHelpFormatter
-from logging import getLogger, basicConfig, INFO
-from itertools import groupby
 
 basicConfig(format="%(message)s")
 log = getLogger()
@@ -102,6 +105,7 @@ def create_kml(exifs,filename="Img2GE.kml"):
                     hdg = 0
                 else:
                     hdg = hdg.values[0].decimal()
+                #TODO: Some images don't display correctly...probably has something to do with tilt?
                 photo.camera = simplekml.Camera(longitude=coords[0], latitude=coords[1], altitude=500, heading=hdg,
                                                 altitudemode=simplekml.AltitudeMode.relativetoground)
                 photo.icon.href = exif['Filename']
