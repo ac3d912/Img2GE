@@ -3,17 +3,15 @@
 '''
 Img2GE -- Plot local images w/ GPS data onto Google Earth VIA crafted .kml
 
-Img2GE is a description
+Img2GE is a small script that plots local images w/ GPS data onto Google Earth VIA crafted .kml
 
-It defines classes_and_methods
+@author:     Daniel Gordon
 
-@author:     user_name
+@copyright:  2014 Daniel Gordon. All rights reserved.
 
-@copyright:  2014 organization_name. All rights reserved.
+@license:    GPL3
 
-@license:    license
-
-@contact:    user_email
+@contact:    ac3d912@yahoo.com
 @deffield    updated: Updated
 '''
 
@@ -25,12 +23,12 @@ import simplekml
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
-from logging import getLogger, basicConfig
+from logging import getLogger, basicConfig, INFO
 from itertools import groupby
 
-basicConfig()
+basicConfig(format="%(message)s")
 log = getLogger()
-
+log.setLevel(INFO)
 
 __all__ = []
 __version__ = 0.1
@@ -39,7 +37,7 @@ __updated__ = '2014-07-22'
 
 DEBUG = 0
 TESTRUN = 0
-PROFILE = 1
+PROFILE = 0
 
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
@@ -60,7 +58,7 @@ def process_image(x):
 
 def import_images(inpath, recurse=True):
     '''
-    @return: list of exifs (dict v=k pairs)
+    @return: list of exifs
     '''
     imgs = []
     for root, dirs, files in os.walk(inpath):  # @UnusedVariable
@@ -86,11 +84,13 @@ def get_coords(exif):
     
 def create_kml(exifs,filename="Img2GE.kml"):
     kml = simplekml.Kml()
+    count = 0
     for grp_name, exifs in groupby(exifs,key=lambda x:os.path.dirname(x['Filename'])):
         folder_created = False
         for exif in exifs:
             log.debug(str(exif))
             if 'GPS GPSLatitude' in exif and 'GPS GPSLongitude' in exif:
+                count += 1
                 #Only create folders if there are images with EXIF data
                 if folder_created == False:
                     fldr = kml.newfolder(name=grp_name)
@@ -108,6 +108,7 @@ def create_kml(exifs,filename="Img2GE.kml"):
                 photo.style.iconstyle.icon.href = exif['Filename']
                 photo.viewvolume = simplekml.ViewVolume(-25,25,-15,15,1)
                 photo.point.coords = [coords]
+    log.info("Found %s images with coords."%count)
     log.info("KML saved as: %s"%filename)
     kml.save(filename)
 
@@ -126,15 +127,21 @@ def main(argv=None): # IGNORE:C0111
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
     program_license = '''%s
 
-  Created by user_name on %s.
-  Copyright 2014 organization_name. All rights reserved.
+    Copyright (C) %s  Daniel Gordon
 
-  Licensed under the Apache License 2.0
-  http://www.apache.org/licenses/LICENSE-2.0
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-  Distributed on an "AS IS" basis without warranties
-  or conditions of any kind, either express or implied.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    
 USAGE
 ''' % (program_shortdesc, str(__date__))
 
@@ -157,7 +164,6 @@ USAGE
 
         if verbose > 0:
             if verbose > 2: verbose = 2
-            print("Verbose mode: %s" % verbose)
             log.setLevel(30-(verbose*10))
 
         exifs = []
@@ -171,7 +177,6 @@ USAGE
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
-
             raise(e)
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
