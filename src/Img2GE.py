@@ -27,6 +27,7 @@ import sys
 
 import exifread
 import simplekml
+import math
 
 
 basicConfig(format="%(message)s")
@@ -37,6 +38,7 @@ __all__ = []
 __version__ = 0.1
 __date__ = '2014-07-22'
 __updated__ = '2014-07-22'
+__license__ = "GPL3"
 
 DEBUG = 0
 TESTRUN = 0
@@ -75,6 +77,13 @@ def import_images(inpath, recurse=True):
     return exifs
 
 def get_coords(exif):
+    '''
+    Get the coordinate data from exif data
+    
+    @return: (longitude, latitude) -- both in +/- decimal fmt
+    '''
+    if not ('GPS GPSLongitude' in exif and 'GPS GPSLatitude' in exif):
+        return (0,0)  
     lng = exif['GPS GPSLongitude'].values
     lng = lng[0].decimal() + lng[1].decimal()/60 + lng[2].decimal()/3600
     if str(exif['GPS GPSLongitudeRef']) == 'W':
@@ -105,12 +114,20 @@ def create_kml(exifs,filename="Img2GE.kml"):
                     hdg = 0
                 else:
                     hdg = hdg.values[0].decimal()
-                #TODO: Some images don't display correctly...probably has something to do with tilt?
                 photo.camera = simplekml.Camera(longitude=coords[0], latitude=coords[1], altitude=500, heading=hdg,
                                                 altitudemode=simplekml.AltitudeMode.relativetoground)
                 photo.icon.href = exif['Filename']
                 photo.style.iconstyle.icon.href = exif['Filename']
-                photo.viewvolume = simplekml.ViewVolume(-25,25,-15,15,1)
+                photo.style.iconstyle.heading = hdg
+                #Calculate this based upon the proper orientation (portrait/landscape) of the image
+                aspratio = float(exif['EXIF ExifImageWidth'].values[0]) / exif['EXIF ExifImageLength'].values[0]
+                efl = exif.get('EXIF FocalLengthIn35mmFilm',None)
+                if efl is not None:
+                    efl = efl.values[0]
+                else:   efl = 35
+                horiz = math.degrees(2*math.atan(24.0/(2*efl)))/2
+                vert = math.degrees(2*math.atan((24.0/aspratio)/(2*efl)))/2
+                photo.viewvolume = simplekml.ViewVolume(-1 * horiz, horiz, -1 * vert, vert,50)
                 photo.point.coords = [coords]
     log.info("Found %s images with coords."%count)
     log.info("KML saved as: %s"%filename)
