@@ -22,20 +22,31 @@ Dependencies:
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from itertools import groupby
 from logging import getLogger, basicConfig, INFO
+from Versioning import Version
 import os
 import sys
 
 import exifread
 import simplekml
+if Version(simplekml.__version__) < "1.3":
+    print "Requires simplekml version 1.3+.  You have: %s" % simplekml.__version__
+    sys.exit(-1)
 import math
 
+#Just adding a little convenience functionality to the exifread's Ratio class 
+def decimal(self):
+        if self.den > 0:
+            return float(self.num) / self.den
+        else:
+            return 0
+exifread.Ratio.decimal = decimal 
 
 basicConfig(format="%(message)s")
 log = getLogger()
 log.setLevel(INFO)
 
 __all__ = []
-__version__ = 0.1
+__version__ = 0.2
 __date__ = '2014-07-22'
 __updated__ = '2014-07-22'
 __license__ = "GPL3"
